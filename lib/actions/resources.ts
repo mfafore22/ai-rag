@@ -4,21 +4,31 @@ import {
   NewResourceParams,
   insertResourceSchema,
   resources,
-} from '@/lib/db/schema/resources';
+} from '../db/schema/resources';
 import { db } from '../db';
+import { generateManyEmbeddings } from '../ai/embedding';
+import { embeddings } from '../db/schema/embeddings';
 
 export const createResource = async (input: NewResourceParams) => {
   try {
-    const { content } = insertResourceSchema.parse(input);
+    const payload = insertResourceSchema.parse(input);
+     
+    const contentWithoutLineBreaks = payload.content.replace(/\n/g, " ");
 
     const [resource] = await db
       .insert(resources)
-      .values({ content })
+      .values({ content: contentWithoutLineBreaks })
       .returning();
+    const e = await generateManyEmbeddings(contentWithoutLineBreaks)
+    await db
+      .insert(embeddings)
+      .values(e.map((embed) => ({ resourceId: resource.id, ...embed })));
+    return "Resource successfully created and embedded.";
 
-    return 'Resource successfully created.';
-  } catch (e) {
-    if (e instanceof Error)
-      return e.message.length > 0 ? e.message : 'Error, please try again.';
+    
+  } catch (error) {
+    return error instanceof Error && error.message.length > 0
+      ? error.message
+      : 'Error, please try again.';
   }
 };

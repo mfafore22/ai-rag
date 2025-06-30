@@ -1,4 +1,4 @@
-import { customAlphabet } from "nanoid";
+import { customAlphabet } from "nanoid/non-secure";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
